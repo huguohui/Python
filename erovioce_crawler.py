@@ -16,6 +16,7 @@ from multiprocessing import Process
 # desired_capabilities["pageLoadStrategy"] = "none"
 
 
+TEMP_DIR = 'D:\\TEMP\\log.txt'
 DEFAULT_PAGE_NO = 1
 PAGE_SIZE = 20
 SKIP_NUM = 0
@@ -62,8 +63,6 @@ def waitUntil(sel, condition, interval = 0.2, timeout=5):
 				ele = driver.find_elements_by_xpath(sel)
 			else:
 				ele = driver.find_element_by_css_selector(sel)
-
-			
 		except Exception as e:
 			pass
 
@@ -116,6 +115,10 @@ def openDownloadPage(text, a):
 		driver.find_element_by_css_selector('.box a').click()
 	except Exception as e:
 		global end
+		msgElement = driver.find_element_by_css_selector('.box center')
+		msgText = msgElement.text
+		print(msgText)
+
 		if 'Error' in driver.page_source:
 			if 'File not found' in driver.page_source:
 				driver.close()
@@ -159,7 +162,7 @@ def closePage():
 	switchWindow(lastWindow())
 
 def readRecord():
-	file = open('D:\\temp\\log.txt', 'r', encoding='utf-8')
+	file = open(TEMP_DIR, 'r', encoding='utf-8')
 	file.seek(0)
 	line = file.readline()
 	a = int(line) if (line) else DEFAULT_PAGE_NO
@@ -169,7 +172,7 @@ def readRecord():
 	return a, b
 
 def writeRecord(records):
-	file = open('D:\\temp\\log.txt', 'w', encoding='utf-8')
+	file = open(TEMP_DIR, 'w', encoding='utf-8')
 	for record in records:
 		file.write(str(record))
 		file.write("\n")
@@ -223,20 +226,20 @@ def doWork():
 		fetchPage()
 	finally:
 		closeBrowser()
- 
+
 
 if __name__ == '__main__':
 	driver = ''
 	end = False
 
 	while not end:
- 		try:
- 			doWork()
-	 	except Exception as e:
-	 		traceback.print_exc()
+		try:
+			doWork()
+		except Exception as e:
+			traceback.print_exc()
 
-	 	time.sleep(1)
-	 
+		time.sleep(1)
+
 	if (sys.argv[1] == '-s' and end):
-		# os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0')
+		# os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0') # 睡眠
 		os.system('shutdown /s /f')	
