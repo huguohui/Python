@@ -17,6 +17,7 @@ from multiprocessing import Process
 
 
 TEMP_DIR = 'D:\\TEMP\\log.txt'
+DRIVER_PATH = 'D:\\Files\\Single Executable\\chromedriver.exe'
 DEFAULT_PAGE_NO = 1
 PAGE_SIZE = 20
 SKIP_NUM = 0
@@ -116,8 +117,9 @@ def openDownloadPage(text, a):
 	except Exception as e:
 		global end
 		msgElement = driver.find_element_by_css_selector('.box center')
-		msgText = msgElement.text
-		print(msgText)
+		if msgElement:
+			msgText = msgElement.text
+			print(msgText)
 
 		if 'Error' in driver.page_source:
 			if 'File not found' in driver.page_source:
@@ -182,8 +184,8 @@ def writeRecord(records):
 
 def getOptions():
 	options = webdriver.ChromeOptions()
-	options.binary_location = r"C:\Users\User\AppData\Local\CentBrowser\Application\chrome.exe"
-	options.add_argument(r'user-data-dir=C:\Users\User\AppData\Local\CentBrowser\User Data')
+	options.binary_location = r"C:\Users\hgh\AppData\Local\CentBrowser\Application\chrome.exe"
+	options.add_argument(r'user-data-dir=C:\Users\hgh\AppData\Local\CentBrowser\User Data')
 	options.add_argument('blink-settings=imagesEnabled=false') # 不加载图片
 	# options.add_argument('--headless') # 无界面
 	# options.add_argument('--disable-gpu')
@@ -191,7 +193,7 @@ def getOptions():
 
 def openBrowser():
 	global driver
-	driver = webdriver.Chrome('D:\\chromedriver.exe', options=getOptions())
+	driver = webdriver.Chrome(DRIVER_PATH, options=getOptions())
 
 def closeBrowser():
 	driver.quit()
@@ -241,5 +243,5 @@ if __name__ == '__main__':
 		time.sleep(1)
 
 	if (sys.argv[1] == '-s' and end):
-		# os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0') # 睡眠
-		os.system('shutdown /s /f')	
+		os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0') # 睡眠
+		# os.system('shutdown /s /f')	

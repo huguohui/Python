@@ -26,7 +26,7 @@ def checkBitrate(fullName, name):
 def convert(path, name):
 	fullName = os.path.join(path, name)
 	outputFullName = os.path.join(RJ_CONVERTED_DIR, name)
-	cmd = r'ffmpeg -y -threads 10 -i "%s" -ab 192k "%s"'%(fullName, outputFullName)
+	cmd = r'ffmpeg -y -threads 10 -i "%s" -ab 192k "%s"' % (fullName, outputFullName)
 	sp = subprocess.Popen(cmd, shell=True)
 	sp.wait()
 

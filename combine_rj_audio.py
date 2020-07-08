@@ -1,12 +1,12 @@
 #!/usr/bin/python
 #coding=utf-8
-import os, sys, io, re, shutil
+import os, sys, io, re, shutil, subprocess
 import urllib.request
 from bs4 import BeautifulSoup
 
-SOURCE_DIR = "C:\\Users\\User\\Downloads\\rj\\uncompressed"
-DESTINATION_DIR = "C:\\Users\\User\\Downloads\\rj\\raw"
-MANUAL_HANDLING_DIR = 'C:\\Users\\User\\Downloads\\rj\\manualhandling'
+SOURCE_DIR = "D:\\Files\\Downloads\\rj\\uncompressed"
+DESTINATION_DIR = r"D:\Files\Downloads\rj\raw"
+MANUAL_HANDLING_DIR = 'D:\\Files\\Downloads\\rj\\manualhandling'
 apiUrl = "https://www.dlsite.com/home/work/=/product_id/{}.html"
 
 audioRE = re.compile('\\.(mp3|wav|flac)$', re.IGNORECASE)
@@ -24,6 +24,7 @@ def lastIndexOf(strings, substr):
 
 	return foundIdx
 
+
 def fetchRJCodeTilte(rjCode):
 	headers = {'User-Agent': 'User-Agent:Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'}
 
@@ -34,6 +35,7 @@ def fetchRJCodeTilte(rjCode):
 	html = BeautifulSoup(response, "html.parser")
 	element = html.select('#work_name a')
 	return element[0].string
+
 
 def mergeAudio(dst, path):
 	assert os.path.isdir(path)
@@ -49,10 +51,16 @@ def mergeAudio(dst, path):
 		if (path.lower().startswith("rj")):
 			fileName = fetchRJCodeTilte(path)
 
-		cmd = 'cat *.{} > "{}.{}"'.format(ext, dst, ext)
-		print(cmd)
-		os.chdir(os.path.join(path))
+		sourceSplitedMp3 = '"%s/"*.%s' % (path, ext)
+		destinationCombineMp3 = ('%s.%s' % (dst, ext)).replace('\\', '\\\\')
+		
+		if os.path.isfile(destinationCombineMp3):
+			return
+
+		cmd = 'cat %s > "%s"' % (sourceSplitedMp3, destinationCombineMp3)
 		os.system(cmd)
+		print(cmd)
+
 
 def findAudio(path):
 	assert os.path.isdir(path)
@@ -71,6 +79,7 @@ def findAudio(path):
 
 	return foundDirs
 
+
 def isNeedManualHandling(paths):
 	_max = 0
 	for k, v in paths.items():
@@ -83,6 +92,7 @@ def isNeedManualHandling(paths):
 
 	return len(paths) > 2 or False
 
+
 if __name__	== '__main__': # 命令行
 	#解决控制台输出报错问题
 	sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -90,8 +100,16 @@ if __name__	== '__main__': # 命令行
 	for name in os.listdir(SOURCE_DIR):
 		fullSourcePath = os.path.join(SOURCE_DIR, name)
 		audioPaths = findAudio(fullSourcePath)
-		audioPath = list(audioPaths.keys())[0]
+		audioPathList = list(audioPaths.keys())
+		if not len(audioPathList):
+			raise Exception('在"%s"中未发现音频文件！' % (name))
+
+		audioPath = audioPathList[0]
 		if (isNeedManualHandling(audioPaths)):
+			dstManualDir = os.path.join(MANUAL_HANDLING_DIR, name)
+			if os.path.isdir(dstManualDir):
+				shutil.rmtree(dstManualDir)
+
 			shutil.move(fullSourcePath, MANUAL_HANDLING_DIR)
 		else:
 			mergeAudio(os.path.join(DESTINATION_DIR, name), audioPath)

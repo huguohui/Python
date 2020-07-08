@@ -9,8 +9,8 @@ import subprocess
 import sys
 
 UNRAR_EXECUTABLE = 'C:\\Program Files\\WinRAR\\unrar.exe'
-COMPRESS_FILE_DIR = "C:\\Users\\User\\Downloads\\rj\\compressed"
-UNCOMPRESS_DIR = "C:\\Users\\User\\Downloads\\rj\\uncompressed"
+COMPRESS_FILE_DIR = "D:\\Files\\Downloads\\rj\\compressed"
+UNCOMPRESS_DIR = "D:\\Files\\Downloads\\rj\\uncompressed"
 TEMP_DIR = "D:\\temp"
 
 compressFileRE = re.compile('\\.(rar|zip|7z|xz|bz2?|ace|gz)$', re.IGNORECASE)
