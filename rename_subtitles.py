@@ -116,9 +116,10 @@ def renameSubtitles(videoDir, subtitleDir):
         # print('{}, {}'.format(idx, name))
         doRename(name, subtitleNames[idx], videoDir, subtitleDir)
 
-
-# for idx, name in enumerate(subtitleNames):
-#	print('{}, {}'.format(idx, name))
+    try:
+        os.rmdir(subtitleDir)
+    except Exception as e:
+        pass
 
 
 def batchRenameSubtitles(directory):
@@ -127,17 +128,17 @@ def batchRenameSubtitles(directory):
     for name in os.listdir(directory):
         vdir = directory.rstrip(DS) + DS + name
         sdir = directory.rstrip(DS) + DS + name + DS + 'sub'
-        if (os.path.exists(sdir) and len(os.listdir(sdir)) == 0):
-            os.rmdir(sdir)
+        if (not os.path.isdir(sdir)):
             continue
 
-        if (not os.path.isdir(sdir)):
+        if (len(os.listdir(sdir)) == 0):
+            os.rmdir(sdir)
             continue
 
         print("> 进入文件夹：{}".format(vdir))
         renameSubtitles(vdir, sdir)
 
 
-# batchRenameSubtitles(input("输入文件夹:"))
+#batchRenameSubtitles(input("输入文件夹:"))
 
 renameSubtitles(input("video: "), input("subtitle: "))

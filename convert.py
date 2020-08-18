@@ -12,9 +12,10 @@ FFMPEG = 'ffmpeg'
 
 def checkBitrate(fullName, name):
 	sp = subprocess.Popen([
-			FFPROBE, "-loglevel", "quiet", "-print_format", 
-			"json", '-show_format', fullName
-		], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+				FFPROBE, "-loglevel", "quiet", "-print_format", 
+				"json", '-show_format', fullName
+			], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	
 	infoJson = sp.stdout.read()
 	info = json.loads(infoJson)
 	bitRate = info['format']['bit_rate']
