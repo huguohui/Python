@@ -16,7 +16,7 @@ from multiprocessing import Process
 # desired_capabilities["pageLoadStrategy"] = "none"
 
 
-TEMP_DIR = 'D:\\TEMP\\log.txt'
+TEMP_DIR = 'D:\\Files\\log.txt'
 DRIVER_PATH = 'D:\\Files\\Single Executable\\chromedriver.exe'
 DEFAULT_PAGE_NO = 1
 PAGE_SIZE = 20
@@ -24,13 +24,16 @@ SKIP_NUM = 0
 CRAWL_URL = 'http://ww8.erovoice.us/'
 curPageNo = DEFAULT_PAGE_NO
 jsTpl = 'window.open("{}")'
-
+rjFileName = ''
+driver = ''
+end = False
 
 def switchWindow(wh):
 	global driver
 	result = driver.switch_to.window(wh)
 	if result:
 		driver = d
+
 
 def openWindow(url, isSwitch = False):
 	js = jsTpl.format(url)
@@ -39,20 +42,26 @@ def openWindow(url, isSwitch = False):
 	if (isSwitch):
 		switchWindow(lastWindow())
 
+
 def windowHandles():
 	global driver
 	return driver.window_handles
 
+
 def lastWindow():
 	return windowHandles()[-1]
+
 
 def firstWindow():
 	return windowHandles()[0]
 
+
 APPEAR = 0
 DISAPPEAR = 1
+
 def waitUntilStatus(sel, status, interval = 0.2, timeout = 5):
 	waitUntil(sel, lambda e : status == APPEAR and e or status == DISAPPEAR and not e, interval, timeout)
+
 
 def waitUntil(sel, condition, interval = 0.2, timeout=5):
 	waitTime = 0
@@ -71,6 +80,7 @@ def waitUntil(sel, condition, interval = 0.2, timeout=5):
 		if (waitTime >= timeout or ele and condition(ele)):
 			break
 
+
 def waitFor(condition, timeout):
 	interval = 0.3
 	count = 0
@@ -79,6 +89,7 @@ def waitFor(condition, timeout):
 		count += interval
 		if count >= timeout or condition():
 			break
+
 
 def openDetailPage(ele):
 	global rjFileName
@@ -91,6 +102,7 @@ def openDetailPage(ele):
 
 	rjFileName = driver.title
 	return text, driver.find_elements_by_xpath('//div[@class="cover"]//a')[1]
+
 
 def openDownloadPage(text, a):
 	searched = re.search('(\\d+(?:\\.\\d+)?)\\s*(\\w)', text)
@@ -136,6 +148,7 @@ def openDownloadPage(text, a):
 
 	return True
 
+
 def tryJs(js):
 	try:
 		driver.execute_script(js)
@@ -144,9 +157,11 @@ def tryJs(js):
 
 	return True
 
+
 def openAllPage(ele):
 	a, b = openDetailPage(ele)
 	return openDownloadPage(a, b)
+
 
 def openListPage(num):
 	global driver
@@ -157,11 +172,13 @@ def openListPage(num):
 	driver.execute_script(js)
 	waitUntil('.pagecurrent', lambda e : int(e.text) == num, 0.5, 6)
 
+
 def closePage():
 	driver.close()
 	switchWindow(lastWindow())
 	driver.close()
 	switchWindow(lastWindow())
+
 
 def readRecord():
 	file = open(TEMP_DIR, 'r', encoding='utf-8')
@@ -173,14 +190,17 @@ def readRecord():
 	file.close()
 	return a, b
 
-def writeRecord(records):
+
+def writeRecord(driver, records):
 	file = open(TEMP_DIR, 'w', encoding='utf-8')
 	for record in records:
 		file.write(str(record))
 		file.write("\n")
 
+	file.write(driver.current_url)
 	file.flush()
 	file.close()
+
 
 def getOptions():
 	options = webdriver.ChromeOptions()
@@ -191,14 +211,16 @@ def getOptions():
 	# options.add_argument('--disable-gpu')
 	return options
 
+
 def openBrowser():
 	global driver
 	driver = webdriver.Chrome(DRIVER_PATH, options=getOptions())
 
+
 def closeBrowser():
 	driver.quit()
 
-rjFileName = ''
+
 def fetchPage():
 	global curPageNo, rjFileName
 	switchWindow(firstWindow())
@@ -215,11 +237,12 @@ def fetchPage():
 			closePage()
 		else:
 			driver.close()
-		writeRecord([curPageNo, i + 1, rjFileName])
+		writeRecord(driver, [curPageNo, i + 1, rjFileName])
 
 	curPageNo += 1
-	writeRecord([curPageNo, 0, rjFileName])
+	writeRecord(driver, [curPageNo, 0, rjFileName])
 	fetchPage()
+
 
 def doWork():
 	openBrowser()
@@ -231,9 +254,6 @@ def doWork():
 
 
 if __name__ == '__main__':
-	driver = ''
-	end = False
-
 	while not end:
 		try:
 			doWork()
@@ -243,5 +263,5 @@ if __name__ == '__main__':
 		time.sleep(1)
 
 	if (sys.argv[1] == '-s' and end):
-		os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0') # 睡眠
+		os.system('rundll32.exe powrprof.dll,SetSuspendState 0,1,0') # 休眠
 		# os.system('shutdown /s /f')	

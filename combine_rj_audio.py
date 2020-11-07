@@ -14,6 +14,7 @@ audioRE = re.compile('\\.(mp3|wav|flac)$', re.IGNORECASE)
 def lastIndexOf(strings, substr):
 	lastIdx = 0
 	foundIdx = 0
+
 	while True:
 		lastIdx = strings.find(substr, lastIdx)
 		if (lastIdx != -1):
@@ -66,6 +67,7 @@ def findAudio(path):
 	assert os.path.isdir(path)
 	foundDirs = {}
 	count = 1
+
 	for name in os.listdir(path):
 		fullPath = os.path.join(path, name)
 		if (os.path.isdir(fullPath)):
@@ -101,6 +103,7 @@ if __name__	== '__main__': # 命令行
 		fullSourcePath = os.path.join(SOURCE_DIR, name)
 		audioPaths = findAudio(fullSourcePath)
 		audioPathList = list(audioPaths.keys())
+		
 		if not len(audioPathList):
 			raise Exception('在"%s"中未发现音频文件！' % (name))
 
