@@ -47,7 +47,7 @@ def mergeAudio(dst, path):
 			ext = name[lastIndexOf(name, '.') + 1:]
 			break;
 
-	if (len(ext) != 0):
+	if len(ext) != 0:
 		fileName = name
 		if (path.lower().startswith("rj")):
 			fileName = fetchRJCodeTilte(path)
@@ -70,12 +70,12 @@ def findAudio(path):
 
 	for name in os.listdir(path):
 		fullPath = os.path.join(path, name)
-		if (os.path.isdir(fullPath)):
+		if os.path.isdir(fullPath):
 			p = findAudio(fullPath)
-			if (p):
+			if p:
 				foundDirs.update(p)
 
-		if (audioRE.search(name)):
+		if audioRE.search(name):
 			foundDirs[path] = count
 			count += 1
 
@@ -108,7 +108,7 @@ if __name__	== '__main__': # 命令行
 			raise Exception('在"%s"中未发现音频文件！' % (name))
 
 		audioPath = audioPathList[0]
-		if (isNeedManualHandling(audioPaths)):
+		if isNeedManualHandling(audioPaths):
 			dstManualDir = os.path.join(MANUAL_HANDLING_DIR, name)
 			if os.path.isdir(dstManualDir):
 				shutil.rmtree(dstManualDir)

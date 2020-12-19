@@ -17,6 +17,8 @@ from multiprocessing import Process
 
 
 TEMP_DIR = 'D:\\Files\\log.txt'
+RJ_CODES_FILE = 'D:\\Files\\rjCodes.txt'
+INVALID_FILE = 'D:\\Files\\invalid.txt'
 DRIVER_PATH = 'D:\\Files\\Single Executable\\chromedriver.exe'
 DEFAULT_PAGE_NO = 1
 PAGE_SIZE = 20
@@ -28,16 +30,18 @@ rjFileName = ''
 driver = ''
 end = False
 
+downloadedRJs = []
+curWindow = None
+
 def switchWindow(wh):
-	global driver
-	result = driver.switch_to.window(wh)
-	if result:
-		driver = d
+	global curWindow
+	window = driver.switch_to.window(wh)
+	curWindow = window if window else driver
 
 
 def openWindow(url, isSwitch = False):
 	js = jsTpl.format(url)
-	driver.execute_script(js)
+	curWindow.execute_script(js)
 
 	if (isSwitch):
 		switchWindow(lastWindow())
@@ -56,6 +60,17 @@ def firstWindow():
 	return windowHandles()[0]
 
 
+def closeWindow(handle):
+	switchWindow(handle)
+	curWindow.close()
+	switchWindow(lastWindow())
+
+
+def closeWindowExceptFirst():
+	for i in range(len(windowHandles()) - 1, 0, -1):
+		closeWindow(windowHandles()[i])
+
+
 APPEAR = 0
 DISAPPEAR = 1
 
@@ -70,9 +85,9 @@ def waitUntil(sel, condition, interval = 0.2, timeout=5):
 		ele = None
 		try:
 			if sel[0] == '/':
-				ele = driver.find_elements_by_xpath(sel)
+				ele = curWindow.find_elements_by_xpath(sel)
 			else:
-				ele = driver.find_element_by_css_selector(sel)
+				ele = curWindow.find_element_by_css_selector(sel)
 		except Exception as e:
 			pass
 
@@ -94,93 +109,145 @@ def waitFor(condition, timeout):
 def openDetailPage(ele):
 	global rjFileName
 	openWindow(ele.get_attribute('href'), True)
-	divs = driver.find_elements_by_xpath('//div[@class="cover"]/div')
+	divs = curWindow.find_elements_by_xpath('//div[@class="cover"]/div')
 	text = ''
 	for div in divs:
 		if 'File' in div.text:
 			text = div.text
 
-	rjFileName = driver.title
-	return text, driver.find_elements_by_xpath('//div[@class="cover"]//a')[1]
+	rjFileName = curWindow.title
+	aEles = curWindow.find_elements_by_xpath('//div[@class="cover"]//a')
+
+	return text, aEles[len(aEles) - 1]
 
 
+def findByCssSelector(selector):
+	ele = None
+	try:
+		ele = curWindow.find_element_by_css_selector(selector)
+	except Exception as e:
+		traceback.print_exc()
+	return ele
+
+
+def downloadShareFile():
+	waitUntilStatus('#overlay', APPEAR, timeout = 10)
+	curWindow.find_element_by_css_selector('#overlay').click()
+	curWindow.find_element_by_css_selector('#btndl').click()
+	btn = curWindow.find_element_by_css_selector('.box a')
+
+	if not btn:
+		global end
+		msgElement = findByCssSelector('.box center')
+		if msgElement:
+			msgText = msgElement.text
+
+		if 'Error' in msgText:
+			if 'has been exceeded' in msgText:
+				end = True
+			raise Exception(msgText)
+
+
+	btn.click()
+
+
+def downloadYuuDriveFile():
+	global end
+	btn = findByCssSelector('button[data-target="dl"]')
+	if not btn:
+		raise Exception('')
+
+	btn.click()
+	alert = findByCssSelector('div.alert')
+	if alert:
+		if 'storage was full' in alert.text:
+			end = True
+		raise Exception(alert.text)
+
+
+SIZE_SKIP = 1
 def openDownloadPage(text, a):
+	downloadSite = a.text
 	searched = re.search('(\\d+(?:\\.\\d+)?)\\s*(\\w)', text)
 	size = float(searched.group(1))
 	unit = searched.group(2)
-	if not size or size < 80 and unit == 'M':
-		print(' - 跳过小于80M的文件')
+	if not size or size < SIZE_SKIP and unit == 'M':
+		print(f' - 跳过小于{SIZE_SKIP}M的文件')
 		return False
 
 	openWindow(a.get_attribute('href'), True)
 	waitUntilStatus('.disabled', DISAPPEAR)
-	driver.find_element_by_css_selector('#btn-main').click()
+	curWindow.find_element_by_css_selector('#btn-main').click()
 
 	waitUntilStatus('.disabled', DISAPPEAR)
-	driver.find_element_by_css_selector('#btn-main').click()
-
-	waitUntilStatus('#overlay', APPEAR, timeout = 10)
-	driver.find_element_by_css_selector('#overlay').click()
-	driver.find_element_by_css_selector('#btndl').click()
+	curWindow.find_element_by_css_selector('#btn-main').click()
 
 	try:
-		waitUntilStatus('.box a', APPEAR)
-		driver.find_element_by_css_selector('.box a').click()
+		if 'Sharer' in downloadSite:
+			downloadShareFile()
+		elif 'YuuDrive' in downloadSite:
+			downloadYuuDriveFile()
+
 	except Exception as e:
-		global end
-		msgElement = driver.find_element_by_css_selector('.box center')
-		if msgElement:
-			msgText = msgElement.text
-			print(msgText)
+		traceback.print_exc()
+		if size >= 150:
+			with open(INVALID_FILE, 'a', encoding='utf-8') as file:
+				file.write(rjFileName)
+				file.write('\n')
 
-		if 'Error' in driver.page_source:
-			if 'File not found' in driver.page_source:
-				driver.close()
-				return False
-			end = True
+		if end:
+			exit(0)
+		return False
 
-		raise e
-
-	try:
-		WebDriverWait(driver, 5).until(EC.title_contains("Google"))
-	except Exception as e:
-		pass
-
+	WebDriverWait(curWindow, 5).until(EC.title_contains("Google"))
 	return True
 
 
 def tryJs(js):
 	try:
-		driver.execute_script(js)
+		curWindow.execute_script(js)
 	except Exception as e:
 		return False
 
 	return True
 
 
-def openAllPage(ele):
+def crawlPage(ele):
 	a, b = openDetailPage(ele)
 	return openDownloadPage(a, b)
 
 
 def openListPage(num):
-	global driver
 	# tpl = 'redirectlabel({})'
 	tpl = 'redirectpage({})'
 	js = tpl.format(num)
 	waitFor(lambda: tryJs(js), 10)
-	driver.execute_script(js)
+
+	curWindow.execute_script(js)
 	waitUntil('.pagecurrent', lambda e : int(e.text) == num, 0.5, 6)
 
 
-def closePage():
-	driver.close()
-	switchWindow(lastWindow())
-	driver.close()
-	switchWindow(lastWindow())
+def writeRJName(rjName):
+	downloadedRJs.extend(rjName)
+	with open(RJ_CODES_FILE, 'a', encoding='utf-8') as file:
+		file.write(rjName)
+		file.write('\n')
 
 
-def readRecord():
+def readRJNames():
+	global downloadedRJs
+
+	if os.path.isfile(RJ_CODES_FILE):
+		with open(RJ_CODES_FILE, 'r', encoding='utf-8') as file:
+			while line := file.readline():
+				downloadedRJs.extend([line.strip()])
+
+
+def isDownloadedRJ(rjName):
+	return rjName in downloadedRJs
+
+
+def readCrawlerInfo():
 	file = open(TEMP_DIR, 'r', encoding='utf-8')
 	file.seek(0)
 	line = file.readline()
@@ -191,7 +258,7 @@ def readRecord():
 	return a, b
 
 
-def writeRecord(driver, records):
+def writeCrawlerInfo(driver, records):
 	file = open(TEMP_DIR, 'w', encoding='utf-8')
 	for record in records:
 		file.write(str(record))
@@ -213,8 +280,9 @@ def getOptions():
 
 
 def openBrowser():
-	global driver
+	global driver, curWindow
 	driver = webdriver.Chrome(DRIVER_PATH, options=getOptions())
+	curWindow = driver
 
 
 def closeBrowser():
@@ -224,23 +292,25 @@ def closeBrowser():
 def fetchPage():
 	global curPageNo, rjFileName
 	switchWindow(firstWindow())
-	curPageNo, nextIdx = readRecord()
+
+	readRJNames()
+	curPageNo, nextIdx = readCrawlerInfo()
 	openListPage(curPageNo)
 	elements = driver.find_elements_by_xpath("//a[@class='anes']")
 
 	for i, ele in enumerate(elements):
-		if (i < nextIdx):
+		if i < nextIdx or isDownloadedRJ(ele.text):
 			continue
 
 		switchWindow(firstWindow())
-		if openAllPage(ele):
-			closePage()
-		else:
-			driver.close()
-		writeRecord(driver, [curPageNo, i + 1, rjFileName])
+		if crawlPage(ele):
+			writeRJName(rjFileName)
+
+		closeWindowExceptFirst()
+		writeCrawlerInfo(driver, [curPageNo, i + 1, rjFileName])
 
 	curPageNo += 1
-	writeRecord(driver, [curPageNo, 0, rjFileName])
+	writeCrawlerInfo(driver, [curPageNo, 0, rjFileName])
 	fetchPage()
 
 

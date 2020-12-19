@@ -124,7 +124,6 @@ class FileSorter():
             if not name in self.groupInfo:
                 self.groupInfo[name] = []
 
-            print(arr)
             for val in arr:
                 prefix = val[2]
                 number = val[1]
@@ -223,8 +222,8 @@ def renameSubtitles(videoDir, subtitleDir):
 
     FileSorter(subtitleNames).sort()
     FileSorter(videoNames).sort()
-    # dumpArray(subtitleNames)
-    # dumpArray(videoNames)
+    dumpArray(subtitleNames)
+    dumpArray(videoNames)
     
     for idx, name in enumerate(videoNames):
         if not subtitleTypeRe.search(subtitleNames[idx]):
